@@ -1,6 +1,22 @@
 from chatterbot import ChatBot
 from chatterbot.trainers import ListTrainer
 from tkinter import *
+import pyttsx3 as pp
+import speech_recognition as s
+import threading
+
+engine = pp.init()
+
+voices = engine.getProperty('voices')
+print(voices)
+
+engine.setProperty('voice', voices[0].id)
+
+
+def speak(word):
+    engine.say(word)
+    engine.runAndWait()
+
 
 # import logging
 # logger = logging.getLogger()
@@ -20,21 +36,9 @@ convo = ['Hello',
          'Bye!',
          'Thankyou!']
 
-
 trainer = ListTrainer(bot)
 
 trainer.train(convo)
-
-# answer = bot.get_response("What is your name?")
-# print(answer)
-# print('You can ask me your questions!')
-
-# while True:
-#     query = input()
-#     if query == 'Exit':
-#         break
-#     answer = bot.get_response(query)
-#     print('Bot : ',answer)
 
 main = Tk()
 
@@ -49,24 +53,43 @@ photoL = Label(main, image=img)
 photoL.pack()
 
 
+def takeQuery():
+    sr = s.Recognizer()
+    sr.pause_threshold = 1
+    print("Your Bot is Listening, speak something!")
+    with s.Microphone() as m:
+        try:
+            audio = sr.listen(m)
+            query = sr.recognize_google(audio, language='eng-in')
+            print(query)
+            textF.delete(0, END)
+            textF.insert(0, query)
+            ask_from_bot()
+        except Exception as e:
+            print(e)
+            print("not recognized")
+
+
 def ask_from_bot():
     query = textF.get()
     answer = bot.get_response(query)
     msgs.insert(END, "You: " + query)
     msgs.insert(END, "Bot: " + str(answer))
+    speak(answer)
     textF.delete(0, END)
+    msgs.yview(END)
 
 
 frame = Frame(main)
 
 scv = Scrollbar(frame)
 
-sch = Scrollbar(frame)
+# sch = Scrollbar(frame)
 
-msgs = Listbox(frame, font=("Verdana", 10), width=150, height=20)
+msgs = Listbox(frame, font=("Verdana", 10), width=150, height=20, yscrollcommand=scv.set)
 
 scv.pack(side=RIGHT, fill=Y)
-sch.pack(side=BOTTOM, fill=X)
+# sch.pack(side=BOTTOM, fill=X)
 
 msgs.pack(side=LEFT, fill=BOTH, pady=10)
 
@@ -81,5 +104,22 @@ textF.pack(fill=X, pady=10)
 btn = Button(main, text="Ask to Bot", font=("Verdana", 20), command=ask_from_bot)
 
 btn.pack()
+
+
+def enter_function(event):
+    btn.invoke()
+
+
+main.bind('<Return>', enter_function)
+
+
+def repeatL():
+    while True:
+        takeQuery()
+
+
+t = threading.Thread(target=repeatL)
+
+t.start()
 
 main.mainloop()
